@@ -80,17 +80,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function showSuccess(email) {
-    document.body.innerHTML = `
-      <div class="container" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(234,250,241,0.7);">
-        <div class="header">
-          <div class="header-icon" style="background:#eafaf1;color:#28a745;font-size:2.5em;">✅</div>
-          <div class="title" style="font-size:2em;font-weight:700;margin-top:10px;">Password Updated!</div>
-          <div class="subtitle" style="font-size:1.2em;margin-top:10px;">The password for <b>${email}</b> has been changed successfully.<br><span style='color:#28a745;font-weight:600;'>You can now login to the app with your updated email and password.</span></div>
-        </div>
-        <a href="/" class="action-btn" style="margin-top:30px;font-size:1.2em;padding:16px 32px;">Go to Login</a>
-        <div class="footer" style="margin-top:40px;font-size:1em;">&copy; 2024 EduNest. All rights reserved.</div>
-      </div>
-    `;
+    let url = 'https://developerik8.github.io/password-success-screen/';
+    if (email) {
+      url += `?email=${encodeURIComponent(email)}`;
+    }
+    window.location.href = url;
   }
 
   function showError(message) {
