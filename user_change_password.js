@@ -1,6 +1,3 @@
-// Replace with your actual Supabase project URL and public anon key
-const supabase = supabase.createClient('https://vpjzxhfrqyspcbgmwqjd.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwanp4aGZycXlzcGNiZ213cWpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMDQ5NzIsImV4cCI6MjA2NjY4MDk3Mn0.x9dnZg6gvSUWVfuL4-CB6dKUY6sESE1xyM_v9Wmv4Tc');
-
 // Parse access_token and type from URL
 const urlParams = new URLSearchParams(window.location.search);
 const accessToken = urlParams.get('access_token');
@@ -10,7 +7,10 @@ const type = urlParams.get('type');
 console.log('URL Params:', window.location.search);
 console.log('accessToken:', accessToken, 'type:', type);
 
-if (type === 'recovery' && accessToken) {
+// Use window.supabaseClient for all supabase operations
+const supabase = window.supabaseClient;
+
+if (type === 'recovery' && accessToken && supabase) {
   // Set the session with the recovery token
   supabase.auth.setSession({
     access_token: accessToken,
@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   const form = document.getElementById('change-password-form');
   const messageDiv = document.getElementById('message');
+  const submitBtn = form.querySelector('button[type="submit"]');
 
   form.onsubmit = async (e) => {
     e.preventDefault();
@@ -45,48 +46,62 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     showLoading();
+    submitBtn.disabled = true;
     try {
       const response = await fetch('https://edunest-admin-api.onrender.com/manual-password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, newPassword })
       });
-      const result = await response.json();
-      if (result.success) {
+      let result = null;
+      try {
+        result = await response.json();
+      } catch (jsonErr) {
+        showError('❌ Server error: Invalid response. Please try again later.');
+        submitBtn.disabled = false;
+        return;
+      }
+      if (result && result.success) {
         showSuccess(email);
       } else {
-        showError(`❌ ${result.message || 'Failed to reset password. Please try again.'}`);
+        showError(`❌ ${result && result.message ? result.message : 'Failed to reset password. Please try again.'}`);
+        submitBtn.disabled = false;
       }
     } catch (err) {
       showError('❌ Error contacting server. Please check your connection and try again.');
+      submitBtn.disabled = false;
     }
   };
 
   function showLoading() {
-    messageDiv.innerHTML = '<span class="spinner"></span> Processing...';
-    messageDiv.className = 'message loading';
+    messageDiv.innerHTML = '<span class="spinner"></span> <span style="font-size:1.2em;vertical-align:middle;">Processing your request...</span>';
+    messageDiv.className = 'message loading show';
+    messageDiv.style.display = 'block';
   }
 
   function showSuccess(email) {
     document.body.innerHTML = `
-      <div class="container">
+      <div class="container" style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(234,250,241,0.7);">
         <div class="header">
           <div class="header-icon" style="background:#eafaf1;color:#28a745;font-size:2.5em;">✅</div>
-          <div class="title">Password Updated!</div>
-          <div class="subtitle">The password for <b>${email}</b> has been changed successfully.<br><span style='color:#28a745;font-weight:600;'>You can now login to the app with your updated email and password.</span></div>
+          <div class="title" style="font-size:2em;font-weight:700;margin-top:10px;">Password Updated!</div>
+          <div class="subtitle" style="font-size:1.2em;margin-top:10px;">The password for <b>${email}</b> has been changed successfully.<br><span style='color:#28a745;font-weight:600;'>You can now login to the app with your updated email and password.</span></div>
         </div>
-        <a href="/" class="action-btn" style="margin-top:30px;">Go to Login</a>
-        <div class="footer">&copy; 2024 EduNest. All rights reserved.</div>
+        <a href="/" class="action-btn" style="margin-top:30px;font-size:1.2em;padding:16px 32px;">Go to Login</a>
+        <div class="footer" style="margin-top:40px;font-size:1em;">&copy; 2024 EduNest. All rights reserved.</div>
       </div>
     `;
   }
 
   function showError(message) {
-    messageDiv.innerHTML = `<span style="font-size:1.5em;vertical-align:middle;">❌</span> <span style="vertical-align:middle;">${message}</span><br><button id="retry-btn" class="action-btn" style="margin-top:12px;background:#d32f2f;">Retry</button>`;
-    messageDiv.className = 'message error';
+    messageDiv.innerHTML = `<span style="font-size:2em;vertical-align:middle;">❌</span> <span style="vertical-align:middle;font-size:1.2em;">${message}</span><br><button id="retry-btn" class="action-btn" style="margin-top:18px;background:#d32f2f;font-size:1.1em;padding:12px 28px;">Retry</button>`;
+    messageDiv.className = 'message error show';
+    messageDiv.style.display = 'block';
+    submitBtn.disabled = false;
     document.getElementById('retry-btn').onclick = function() {
       messageDiv.textContent = '';
       messageDiv.className = 'message';
+      messageDiv.style.display = 'none';
       form.reset();
     };
   }
